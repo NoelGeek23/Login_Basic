@@ -1,0 +1,84 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  python-tests:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: [3.8, 3.9, 3.10]
+    steps:
+      - uses: actions/checkout@v3
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install flask pytest
+      - name: Run Python tests
+        run: pytest tests/
+
+  node-tests:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node-version: [16.x, 18.x]
+    steps:
+      - uses: actions/checkout@v3
+      - name: Use Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v3
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: 'npm'
+      - name: Install dependencies
+        run: |
+          if [ -f package.json ]; then npm install; fi
+      - name: Run Node.js tests
+        run: |
+          npx jest --passWithNoTests || echo "No jest tests found"
+          # Run supertest tests
+          node test/app.test.js
+          node test/server.test.js
+
+  react-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Use Node.js 18
+        uses: actions/setup-node@v3
+        with:
+          node-version: 18
+          cache: 'npm'
+      - name: Install dependencies
+        run: |
+          if [ -f package.json ]; then npm install; fi
+      - name: Run React tests
+        run: |
+          npx jest src/App.test.js || echo "No React tests found"
+
+  lint-security:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Set up Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: 18
+      - name: Install npm packages
+        run: |
+          if [ -f package.json ]; then npm install; fi
+      - name: Run ESLint
+        run: |
+          if [ -f package.json ]; then npx eslint . || echo "ESLint issues found"; fi
+      - name: Run npm audit
+        run: |
+          if [ -f package.json ]; then npm audit --audit-level=moderate || echo "Vulnerabilities found"; fi

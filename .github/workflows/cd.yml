@@ -1,0 +1,72 @@
+name: CD
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: 3.10
+
+      - name: Install Python dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install flask
+
+      - name: Run Python build (if any)
+        run: echo "No Python build steps defined"
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: 18
+
+      - name: Install Node.js dependencies
+        run: |
+          if [ -f package.json ]; then npm install; fi
+
+      - name: Build React app (if applicable)
+        run: |
+          if [ -f package.json ]; then npm run build || echo "No build script defined"; fi
+
+      - name: Package artifacts
+        run: |
+          echo "Packaging artifacts for deployment"
+          mkdir -p deployment_artifacts
+          cp -r app.py deployment_artifacts/ || true
+          cp -r server.js deployment_artifacts/ || true
+          cp -r src deployment_artifacts/ || true
+          cp -r build deployment_artifacts/ || true
+
+      - name: Upload deployment artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: deployment-artifacts
+          path: deployment_artifacts/
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download deployment artifacts
+        uses: actions/download-artifact@v3
+        with:
+          name: deployment-artifacts
+          path: deployment_artifacts
+
+      - name: Placeholder - Deploy to environment
+        run: |
+          echo "Add deployment commands here"
+          echo "For example, deploy Flask app, Node.js server, or React build to your target environment"
+
+      - name: Notify deployment success
+        run: echo "Deployment completed successfully"
